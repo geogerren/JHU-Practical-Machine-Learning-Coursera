@@ -15,7 +15,12 @@ In this exercise, we are trying to predict how well people are lifting barbells 
 
 
 ### Step 0: Read in the data
-We begin with downloading the data files from the Internet and save them as csv files locally.
+First thing first, we load a the `caret` library which we are going to use extensively in this exercise:
+```{r, eval=FALSE}
+library(caret)
+```
+
+We begin with downloading the data files from the Internet and save them as csv files locally:
 ```{r, eval=FALSE}
 rawTrain <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", header=TRUE)
 rawTest <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", header=TRUE)
@@ -26,7 +31,7 @@ write.csv(rawTest, "rawTest.csv")
 ### Step 1: Data Cleaning and Preprocessing
 Once the data is downloaded successfully, we then take a moment to clean and preprocess the data.
 
-First, we identify variables with mostly zero values and remove them from both the training and testing datasets.
+First, we identify variables with mostly zero values and remove them from both the training and testing datasets:
 ```{r, eval=FALSE}
 # Remove first row which is essentially row numbers
 rawTrain <- rawTrain[, -1]
@@ -37,24 +42,54 @@ training <- rawTrain[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
 testing <- rawTest[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
 ```
 
-Second, we find variables with high missing rate and remove them from both datasets.
-```{r}
+Second, we find variables with high missing rate and remove them from both datasets:
+```{r, eval=FALSE}
 missPerc <- colMeans(is.na(training))       # calculate NA percentage
 training <- training[, missPerc <= 0.8]
 
 missPerc <- colMeans(is.na(testing))       # calculate NA percentage
-training <- testing[, missPerc <= 0.8]
+testing <- testing[, missPerc <= 0.8]
 ```
 
-
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+We then examine the data and further clean the data by deleting a few timestamp variables that are not related to this prediction problem:
+```{r, eval=FALSE}
+training <- subset(training, select = -c(1:5))
+testing <- subset(testing, select = -c(1:5))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The data is now clean and ready to be used for model training.
+
+### Model Training and Validation
+We first split the training data set into training and cross validation sets:
+```{r, eval=FALSE}
+inTrain <- createDataPartition(y=training$classe, p=0.7, list=FALSE)
+training_final <- training[inTrain, ]
+validation <- training[-inTrain, ]
+```
+
+And then we employ the **Gradient Boosting Machine (GBM)** algorithm to fit the `training_final` data set with all available predictor variables and default settings.  It takes a while for the model fitting to complete.
+```{r, eval=FALSE}
+fit.gbm <- train(classe~., method="gbm", data=training_final)
+```
+
+Once the model fitting is complete, we take a look at the prediction accuracy on the training data:
+```{r, eval=FALSE}
+pred.train.gbm <- predict(fit.gbm, training_final)
+confusionMatrix(training_final$classe, pred.train.gbm)
+```
+
+The gbm model we just obtained performs very well (Accuracy > .95) on the training set which is expected.  We then check the model performance on the cross validation data set:
+```{r, eval=FALSE}
+pred.valid.gbm <- predict(fit.gbm, validation)
+confusionMatrix(validation$classe, pred.valid.gbm)
+```
+
+Looks like the model also performs great (Accuracy > .95) on the cross validation set.  At this point we can conclude that the model is stable and robust.
+
+### Prediction
+Finally, we make the prediction based on the testing data set:
+```{r, eval=FALSE}
+predict(fit.gbm, testing)
+```
+
+Based on the stable performance the model has on both the training and cross validation set, we expect the prediction err rate when applied on the testing set would be <.05 (Accuracy > .95).

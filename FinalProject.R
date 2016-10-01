@@ -22,41 +22,41 @@ rawTest <- rawTest[, -1]
 # remove near-zero values
 nzv <- nearZeroVar(rawTrain, saveMetrics = TRUE)
 training <- rawTrain[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
+nzv <- nearZeroVar(rawTest, saveMetrics = TRUE)
 testing <- rawTest[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
 
 # Remove features with high missing value percentage
 missPerc <- colMeans(is.na(training))       # calculate NA percentage
 training <- training[, missPerc <= 0.8]
 missPerc <- colMeans(is.na(testing))       # calculate NA percentage
-training <- testing[, missPerc <= 0.8]
-
+testing <- testing[, missPerc <= 0.8]
 
 # remove a few username and timestamp vars not helpful for predicting
 training <- subset(training, select = -c(1:5))
+testing <- subset(testing, select = -c(1:5))
 
-write.csv(t(summary(training)), "trainingSetSum.csv")
+#write.csv(t(summary(training)), "trainingSetSum.csv")
 
 # splitting training and validation sets
 inTrain <- createDataPartition(y=training$classe, p=0.7, list=FALSE)
 training_final <- training[inTrain, ]
 validation <- training[-inTrain, ]
 
-# Fit a rpart decision tree
+# Fit a gradient boosting machine
 fit.rpart <- train(classe~., method="rpart", data=training_final)
 fit.gbm <- train(classe~., method="gbm", data=training_final)
 
-plot(fit.rpart$finalModel, uniform = TRUE, main = "Classification Tree")
+plot(fit.gbm$finalModel, uniform = TRUE, main = "Classification Tree")
 text(fit.rpart$finalModel, use.n = TRUE, all = TRUE, cex = .8)
 
 fancyRpartPlot(fit.rpart$finalModel)
 
-pred <- predict(fit.rpart, training_final)
+pred.train.gbm <- predict(fit.gbm, training_final)
+pred.valid.gbm <- predict(fit.gbm, validation)
 
-missClass = function(values,prediction){sum(prediction != values)/length(values)}
+confmatx.gbm <- confusionMatrix(validation$classe, pred.valid.gbm)
 
-missClass(training_final$classe, pred)
-
-confusionMatrix(training_final$classe, pred)
+pred.test.gbm <- predict(fit.gbm, testing)
 
 
 
