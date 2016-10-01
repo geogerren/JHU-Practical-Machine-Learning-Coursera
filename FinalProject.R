@@ -22,10 +22,14 @@ rawTest <- rawTest[, -1]
 # remove near-zero values
 nzv <- nearZeroVar(rawTrain, saveMetrics = TRUE)
 training <- rawTrain[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
+testing <- rawTest[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
 
 # Remove features with high missing value percentage
 missPerc <- colMeans(is.na(training))       # calculate NA percentage
 training <- training[, missPerc <= 0.8]
+missPerc <- colMeans(is.na(testing))       # calculate NA percentage
+training <- testing[, missPerc <= 0.8]
+
 
 # remove a few username and timestamp vars not helpful for predicting
 training <- subset(training, select = -c(1:5))

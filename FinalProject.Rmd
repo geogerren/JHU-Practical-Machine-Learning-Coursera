@@ -1,0 +1,60 @@
+---
+title: "Final Project - JHU Practical Machine Learning"
+author: "George Ren"
+date: "10/1/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Problem Statement
+
+In this exercise, we are trying to predict how well people are lifting barbells using measurement data from accelerometers on the belt, forearm, arm, and dumbell.  Refer to <http://groupware.les.inf.puc-rio.br/har> for more details.
+
+
+### Step 0: Read in the data
+We begin with downloading the data files from the Internet and save them as csv files locally.
+```{r, eval=FALSE}
+rawTrain <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", header=TRUE)
+rawTest <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", header=TRUE)
+write.csv(rawTrain, "rawTrain.csv")
+write.csv(rawTest, "rawTest.csv")
+```
+
+### Step 1: Data Cleaning and Preprocessing
+Once the data is downloaded successfully, we then take a moment to clean and preprocess the data.
+
+First, we identify variables with mostly zero values and remove them from both the training and testing datasets.
+```{r, eval=FALSE}
+# Remove first row which is essentially row numbers
+rawTrain <- rawTrain[, -1]
+rawTest <- rawTest[, -1]
+
+nzv <- nearZeroVar(rawTrain, saveMetrics = TRUE)
+training <- rawTrain[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
+testing <- rawTest[, nzv$zeroVar==FALSE & nzv$nzv==FALSE]
+```
+
+Second, we find variables with high missing rate and remove them from both datasets.
+```{r}
+missPerc <- colMeans(is.na(training))       # calculate NA percentage
+training <- training[, missPerc <= 0.8]
+
+missPerc <- colMeans(is.na(testing))       # calculate NA percentage
+training <- testing[, missPerc <= 0.8]
+```
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
